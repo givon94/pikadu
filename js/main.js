@@ -1,3 +1,19 @@
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0O6iuXLHb1kEsY06XCxBYa-OU7AVRlHo",
+  authDomain: "pikadu-ac29a.firebaseapp.com",
+  databaseURL: "https://pikadu-ac29a.firebaseio.com",
+  projectId: "pikadu-ac29a",
+  storageBucket: "pikadu-ac29a.appspot.com",
+  messagingSenderId: "388833115003",
+  appId: "1:388833115003:web:d11f9138ea95d9a0679bde"
+};
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+console.log(firebase)
+
+
 
 let menuToggle = document.querySelector('#menu-toggle');
 let menu = document.querySelector('.sidebar');
@@ -21,14 +37,17 @@ const editUsername = document.querySelector('.edit-username'),
   editPhotoURL = document.querySelector('.edit-photo'),
   userAvatarElem = document.querySelector('.user-avatar');
 
-const postsWrapper = document.querySelector('.posts');
+const postsWrapper = document.querySelector('.posts'),
+  buttonNewPost = document.querySelector('.button-new-post'),
+  addPostElem = document.querySelector('.add-post');
 
 const listUsers = [
   {
     id: '01',
     email: 'alex@mail.com',
     password: '12345',
-    displayName: 'Alex'
+    displayName: 'Alex',
+    photo: 'https://i007.fotocdn.net/s123/2950fc2e1fadccab/user_xl/2816616767.jpg',
   },
   {
     id: '02',
@@ -46,7 +65,8 @@ const setUsers = {
     const user = this.getUser(email);
     if (user && user.password === password) {
       this.authorizedUser(user);
-      handler();
+
+      if (handler) handler();
     } else {
       alert('Пользователь с такими данными не найден');
     }
@@ -67,7 +87,7 @@ const setUsers = {
 
       listUsers.push(user);
       this.authorizedUser(user);
-      handler();
+      if (handler) handler();
     } else {
       alert('Пользователь с таким email уже зарегистрироан');
     }
@@ -82,7 +102,7 @@ const setUsers = {
       this.user.photo = userPhoto;
     }
 
-    handler();
+    if (handler) handler();
   },
 
   getUser(email) {
@@ -102,7 +122,7 @@ const setPosts = {
       title: 'Заголовлок поста',
       text: `Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. Языком что рот маленький реторический вершину текстов обеспечивает гор свой назад решила сбить маленькая дорогу жизни рукопись ему букв деревни предложения, ручеек залетают продолжил парадигматическая? Но языком сих пустился, запятой своего его снова решила меня вопроса моей своих пояс коварный, власти диких правилами напоивший они текстов ipsum первую подпоясал? Лучше, щеке подпоясал приставка большого курсивных на берегу своего? Злых, составитель агентство что вопроса ведущими о решила одна алфавит!`,
       tags: ['свежее', 'новое', 'горячее', 'мое', 'случайность'],
-      author: 'alex@mail.com',
+      author: {displayName: 'alex', photo: 'https://i007.fotocdn.net/s123/2950fc2e1fadccab/user_xl/2816616767.jpg'},
       date: '13.11.2020, 20:54:00 ',
       like: 15,
       comments: 5
@@ -111,12 +131,30 @@ const setPosts = {
       title: 'Заголовлок поста2',
       text: `Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. Языком что рот маленький реторический вершину текстов обеспечивает гор свой назад решила сбить маленькая дорогу жизни рукопись ему букв деревни предложения, ручеек залетают продолжил парадигматическая? Но языком сих пустился, запятой своего его снова решила меня вопроса моей своих пояс коварный, власти диких правилами напоивший они текстов ipsum первую подпоясал? Лучше, щеке подпоясал приставка большого курсивных на берегу своего? Злых, составитель агентство что вопроса ведущими о решила одна алфавит!`,
       tags: ['свежее', 'новое', 'горячее', 'мое', 'случайность'],
-      author: 'kate@mail.com',
+      author: {displayName: 'kate', photo: 'https://i007.fotocdn.net/s123/2950fc2e1fadccab/user_xl/2816616767.jpg'},
       date: '13.11.2020, 23:54:00 ',
       like: 15,
       comments: 5
     }
-  ]
+  ],
+  addPost(title, text, tags, handler) {
+
+    this.allPosts.unshift({
+      title,
+      text,
+      tags: tags.split(',').map(item => item.trim()),
+      author: {
+        displayName: setUsers.user.displayName,
+        photo: setUsers.user.photo,
+      },
+      date: new Date().toLocaleString(),
+      like: 0,
+      comments: 0,
+    })
+
+
+    if (handler) handler();
+  }
 };
 
 const toggleAuthDom = () => {
@@ -127,24 +165,35 @@ const toggleAuthDom = () => {
     userElem.style.display = '';
     userNameElem.textContent = user.displayName;
     userAvatarElem.src = user.photo || userAvatarElem.src;
+    buttonNewPost.classList.add('visible');
   } else {
     loginElem.style.display = '';
     userElem.style.display = 'none';
+    buttonNewPost.classList.remove('visible');
+    addPostElem.classList.remove('visible');
+    postsWrapper.classList.add('visible');
   }
+};
 
+const showAddPost = () => {
+  addPostElem.classList.add('visible');
+  postsWrapper.classList.remove('visible');
+  
 };
 
 const showAllPosts = () => {
+
   let postsHTML = '';
 
-  setPosts.allPosts.forEach((post) => {
+  setPosts.allPosts.forEach(({title, text, date, tags, like, comments, author}) => {
+
     postsHTML += `
     <section class="post">
     <div class="post-body">
-      <h2 class="post-title">${post.title}</h2>
-      <p class="${post.text}</p>
+      <h2 class="post-title">${title}</h2>
+      <p class="post-text">${text}</p>
       <div class="tags">
-        <a href="#" class="tag">#свежее</a>
+        ${tags.map(tag => `<a href="#" class="tag">#${tag}</a>`)}
       </div>
     </div>
     <div class="post-footer">
@@ -153,13 +202,13 @@ const showAllPosts = () => {
           <svg width="19" height="20" class="icon icon-like">
             <use xlink:href="img/icons.svg#like"></use>
           </svg>
-          <span class="likes-counter">26</span>
+          <span class="likes-counter">${like}</span>
         </button>
         <button class="post-button comments">
           <svg width="21" height="21" class="icon icon-comment">
             <use xlink:href="img/icons.svg#comment"></use>
           </svg>
-          <span class="comments-counter">157</span>
+          <span class="comments-counter">${comments}</span>
         </button>
         <button class="post-button save">
           <svg width="19" height="19" class="icon icon-save">
@@ -174,10 +223,10 @@ const showAllPosts = () => {
       </div>
       <div class="post-author">
         <div class="author-about">
-          <a href="#" class="author-username">alex</a>
-          <span class="post-time">5 минут назад</span>
+          <a href="#" class="author-username">${author.displayName}</a>
+          <span class="post-time">${date}</span>
         </div>
-        <a href="#" class="author-link"><img src="img/no-avatar.png" alt="avatar" class="author-avatar"></a>
+        <a href="#" class="author-link"><img src=${author.photo || 'img/no-avatar.png'} alt="avatar" class="author-avatar"></a>
       </div>
     </div>
   </section>
@@ -185,7 +234,11 @@ const showAllPosts = () => {
   });
 
   postsWrapper.innerHTML = postsHTML;
+
+  addPostElem.classList.remove('visible');
+  postsWrapper.classList.add('visible');
 }
+
 
 const init = () => {
   loginForm.addEventListener('submit', event => {
@@ -225,10 +278,34 @@ const init = () => {
     editContainer.classList.remove('visible');
   });
 
-  menuToggle.addEventListener('click', function (event) {
+  menuToggle.addEventListener('click', (event) => {
     event.preventDefault();
     menu.classList.toggle('visible');
   })
+
+  buttonNewPost.addEventListener('click', (event) => {
+    event.preventDefault();
+    showAddPost();
+  });
+
+  addPostElem.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const { title, text, tags } = addPostElem.elements;
+
+    if (title.value.length < 6) {
+      alert('Слишком короткий заголовок');
+      return;
+    }
+
+    if (text.value.length < 50) {
+      alert('Слишком короткий пост');
+      return;
+    }
+
+    setPosts.addPost(title.value, text.value, tags.value, showAllPosts);
+    addPostElem.classList.remove('visible');
+    addPostElem.reset();
+  });
 
   showAllPosts();
   toggleAuthDom();
