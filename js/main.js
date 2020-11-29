@@ -11,14 +11,11 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-console.log(firebase)
-
-
 
 let menuToggle = document.querySelector('#menu-toggle');
 let menu = document.querySelector('.sidebar');
 
-const regExpValidEmail = /^\w+@\w\.\w{2,}$/;
+const regExpValidEmail = /^[\w-\.]+@[\w-]+\.[a-z]{2,4}$/i;
 
 const loginElem = document.querySelector('.login'),
   loginForm = document.querySelector('.login-form'),
@@ -41,119 +38,144 @@ const postsWrapper = document.querySelector('.posts'),
   buttonNewPost = document.querySelector('.button-new-post'),
   addPostElem = document.querySelector('.add-post');
 
-const listUsers = [
-  {
-    id: '01',
-    email: 'alex@mail.com',
-    password: '12345',
-    displayName: 'Alex',
-    photo: 'https://i007.fotocdn.net/s123/2950fc2e1fadccab/user_xl/2816616767.jpg',
-  },
-  {
-    id: '02',
-    email: 'kate@mail.com',
-    password: '123456',
-    displayName: 'Kate'
-  },
-];
+const DEFAULT_PHOTO = userAvatarElem.src;
+
+const loginFoget = document.querySelector('.login-foget');
+
+
+
 
 const setUsers = {
   user: null,
-  logIn(email, password, handler) {
-    //if (!regExpValidEmail.test(email)) return alert('email не валиден');
-
-    const user = this.getUser(email);
-    if (user && user.password === password) {
-      this.authorizedUser(user);
-
+  initUser(handler) {
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        this.user = user;
+      } else {
+        this.user = null;
+      }
       if (handler) handler();
-    } else {
-      alert('Пользователь с такими данными не найден');
-    }
+    })
   },
-  logOut(handler) {
-    this.user = null;
-    handler();
+  logIn(email, password, handler) {
+    if (!regExpValidEmail.test(email)) return alert('email не валиден');
+
+    firebase.auth()
+      .signInWithEmailAndPassword(email, password)
+      .catch(error => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        if (errorCode === 'auth/wrong-password') {
+          console.log(errorMessage);
+          alert('Неверный пароль');
+        } else if (errorCode === 'auth/user-not-found') {
+          console.log(errorMessage);
+          alert('Пользователь не найден');
+        } else {
+          alert(errorMessage);
+        }
+        console.log(error);
+      })
+  },
+  logOut() {
+    firebase.auth().signOut();
   },
   signUp(email, password, handler) {
-    //if (!regExpValidEmail.test(email)) return alert('email не валиден');
+    if (!regExpValidEmail.test(email)) return alert('email не валиден');
     if (!email.trim() || !password.trim()) {
       alert('Введите данные');
       return;
     }
 
-    if (!this.getUser(email)) {
-      const user = {email, password, displayName: email.substring(0, email.indexOf('@'))};
+    firebase.auth()
+      .createUserWithEmailAndPassword(email, password)
+      .then((data) => {
+        this.editUser(email.substring(0, email.indexOf('@')), null, handler)
+      })
+      .catch(error => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        if (errorCode === 'auth/weak-password') {
+          console.log(errorMessage);
+          alert('Слабый пароль');
+        } else if (errorCode === 'auth/email-already-in-use') {
+          console.log(errorMessage);
+          alert('Этот email уже используется');
+        } else {
+          alert(errorMessage);
+        }
 
-      listUsers.push(user);
-      this.authorizedUser(user);
-      if (handler) handler();
-    } else {
-      alert('Пользователь с таким email уже зарегистрироан');
+        console.log(error);
+      });
+  },
+
+  editUser(displayName, photoURL, handler) {
+
+    const user = firebase.auth().currentUser;
+
+    if (displayName) {
+      if (photoURL) {
+        user.updateProfile({
+          displayName,
+          photoURL
+        }).then(handler)
+      } else {
+        user.updateProfile({
+          displayName,
+        }).then(handler)
+      }
     }
   },
 
-  editUser(userName, userPhoto, handler) {
-    if (userName) {
-      this.user.displayName = userName;
+  sendFoget(email) {
+    firebase.auth().sendPasswordResetEmail(email)
+      .then(() => {
+        alert('Письмо отправлено');
+      })
+      .catch(error => {
+        console.log(error);
+      })
     }
+  };
 
-    if (userPhoto) {
-      this.user.photo = userPhoto;
-    }
+  loginFoget.addEventListener('click', event => {
+    event.preventDefault();
 
-    if (handler) handler();
-  },
-
-  getUser(email) {
-    return listUsers.find((item) => {
-      return item.email === email;
-    });
-  },
-
-  authorizedUser(user) {
-    this.user = user;
-  }
-}
+    setUsers.sendFoget(emailInput.value);
+    emailInput.value = '';
+  });
 
 const setPosts = {
-  allPosts: [
-    {
-      title: 'Заголовлок поста',
-      text: `Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. Языком что рот маленький реторический вершину текстов обеспечивает гор свой назад решила сбить маленькая дорогу жизни рукопись ему букв деревни предложения, ручеек залетают продолжил парадигматическая? Но языком сих пустился, запятой своего его снова решила меня вопроса моей своих пояс коварный, власти диких правилами напоивший они текстов ipsum первую подпоясал? Лучше, щеке подпоясал приставка большого курсивных на берегу своего? Злых, составитель агентство что вопроса ведущими о решила одна алфавит!`,
-      tags: ['свежее', 'новое', 'горячее', 'мое', 'случайность'],
-      author: {displayName: 'alex', photo: 'https://i007.fotocdn.net/s123/2950fc2e1fadccab/user_xl/2816616767.jpg'},
-      date: '13.11.2020, 20:54:00 ',
-      like: 15,
-      comments: 5
-    },
-    {
-      title: 'Заголовлок поста2',
-      text: `Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. Языком что рот маленький реторический вершину текстов обеспечивает гор свой назад решила сбить маленькая дорогу жизни рукопись ему букв деревни предложения, ручеек залетают продолжил парадигматическая? Но языком сих пустился, запятой своего его снова решила меня вопроса моей своих пояс коварный, власти диких правилами напоивший они текстов ipsum первую подпоясал? Лучше, щеке подпоясал приставка большого курсивных на берегу своего? Злых, составитель агентство что вопроса ведущими о решила одна алфавит!`,
-      tags: ['свежее', 'новое', 'горячее', 'мое', 'случайность'],
-      author: {displayName: 'kate', photo: 'https://i007.fotocdn.net/s123/2950fc2e1fadccab/user_xl/2816616767.jpg'},
-      date: '13.11.2020, 23:54:00 ',
-      like: 15,
-      comments: 5
-    }
-  ],
+  allPosts: [],
   addPost(title, text, tags, handler) {
 
+    const user = firebase.auth().currentUser;
+
     this.allPosts.unshift({
+      id: `postID${(+new Date()).toString(16)}-${user.uid}`,
       title,
       text,
       tags: tags.split(',').map(item => item.trim()),
       author: {
         displayName: setUsers.user.displayName,
-        photo: setUsers.user.photo,
+        photo: setUsers.user.photoURL,
       },
       date: new Date().toLocaleString(),
       like: 0,
       comments: 0,
     })
 
+    firebase.database().ref('post').set(this.allPosts)
+      .then(() => this.getPosts(handler))
+      .then()
+  },
 
-    if (handler) handler();
+  getPosts(handler) {
+    firebase.database().ref('post').on('value', snapshot => {
+      this.allPosts = snapshot.val() || [];
+
+      handler();
+    })
   }
 };
 
@@ -164,7 +186,7 @@ const toggleAuthDom = () => {
     loginElem.style.display = 'none';
     userElem.style.display = '';
     userNameElem.textContent = user.displayName;
-    userAvatarElem.src = user.photo || userAvatarElem.src;
+    userAvatarElem.src = user.photoURL || DEFAULT_PHOTO;
     buttonNewPost.classList.add('visible');
   } else {
     loginElem.style.display = '';
@@ -261,7 +283,7 @@ const init = () => {
   
   exitElem.addEventListener('click', event => {
     event.preventDefault();
-    setUsers.logOut(toggleAuthDom);
+    setUsers.logOut();
   
   });
   
@@ -307,8 +329,8 @@ const init = () => {
     addPostElem.reset();
   });
 
-  showAllPosts();
-  toggleAuthDom();
+  setUsers.initUser(toggleAuthDom);
+  setPosts.getPosts(showAllPosts)
 }
 
 
